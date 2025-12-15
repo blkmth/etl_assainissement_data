@@ -1,0 +1,81 @@
+# ============= FICHIERS SENSIBLES (NE JAMAIS COMMIT) =============
+.env
+.env.local
+.env.production
+*.pem
+*.key
+secrets.yaml
+credentials.json
+
+# ============= PYTHON =============
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ============= VIRTUAL ENVIRONMENTS =============
+venv/
+ENV/
+env/
+.venv
+poetry.lock  # Décommenter si vous voulez versionner le lock
+
+# ============= AIRFLOW =============
+airflow.db
+airflow.cfg
+airflow-webserver.pid
+logs/
+*.log
+*.log.*
+
+# ============= JUPYTER / IPYTHON =============
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ============= BASES DE DONNÉES =============
+*.db
+*.sqlite
+*.sqlite3
+
+# ============= IDE =============
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ============= DONNÉES TEMPORAIRES =============
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+
+# ============= TESTS =============
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
