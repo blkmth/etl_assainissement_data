@@ -156,3 +156,146 @@ class TransformateurParDefaut:
 
         ## Retourner le DataFrame nettoyé et les métadonnées
         return df_clean, metadata
+    
+
+# ============================================================================
+# FONCTION 2: TRANSFORMATEUR SPÉCIALISÉ POUR LA TABLE "CLIENTS"
+# ============================================================================
+    """
+    Expert spécialisé pour la table clients.
+    
+    Responsabilités spécifiques:
+        - Anonymiser les numéros de carte bancaire
+        - Calculer des indicateurs métier (taux d'endettement, solde net)
+        - Normaliser les codes pays
+        - Valider la présence de colonnes obligatoires
+        
+    Héritage:
+        Réutilise TOUT le traitement standard du TransformateurParDefaut
+        puis ajoute les traitements spécialisés par-dessus.
+    
+    Args:
+        df: DataFrame de la table clients
+        config: Configuration YAML
+        
+    Returns:
+        Tuple (DataFrame traité, métadonnées enrichies)
+    """
+## afficher un avertissement de dépréciation
+print ("DONNÉES SENSIBLES DETECTÉES :TION DU RTAITEMENT SPÉCIALISÉ CLIENTS EST DÉPRÉCIÉE")
+
+# ---------------------------------------------------------------
+# ETAPE 1: APPELER LE TRANSFORMATEUR PAR DÉFAUT (LE TRAITEMENT STANDARD)
+# ---------------------------------------------------------------
+
+# Principe de réutilisation: on hérite de tous les nettoyages de base
+    # (normalisation colonnes, dates, doublons, valeurs manquantes)
+
+TransformateurParDefaut = TransformateurParDefaut(config)
+df_clean, metadata = TransformateurParDefaut.transformer(df, "clients")
+
+## mettre à jour le type de traitement dans les métadonnées
+metadata["traitement"] = "SPÉCIALISÉ_CLIENTS"
+
+# ---------------------------------------------------------------
+# ETAPE 2: anonymisation DES NUMÉROS DE CARTE BANCAIRE
+# ---------------------------------------------------------------
+    # Objectif: Masquer les données sensibles (RGPD, PCI-DSS)
+    # Stratégie: Garder seulement les 4 derniers chiffres
+    
+if 'numero_carte' in df_clean.columns : 
+    ## enregistrer le nombre de cartes avant anonymisation
+    metadata["cartes_avant_anonymisation"] = len(df_clean)
+
+    ## appliquer l'anonymisation
+    def masquer_carte(numero):
+        """
+     Masque un numéro de carte en gardant les 4 derniers chiffres.
+            
+            Exemples:
+                "1234567890123456" → "************3456"
+                "123" → "***"
+                NaN → "INCONNU"
+        """
+
+        ## cas 1: valeur manquante ou deja remplacée
+        if pd.isna(numero) or numero == "INCONNU":
+            return "INCONNU"
+        
+        ## cas 2: convertir en string pour manipulation
+        numero_str = str(numero)   
+
+        ## cas 3: masquer tous les chiffres sauf les 4 derniers
+        if len(numero_str) <= 4:
+                return "*" * len(numero_str)
+        
+        ## Sinon: masquer tout sauf les 4 derniers
+                return "*" * (len(numero_str) - 4) + numero_str[-4:]
+        
+    ## appliquer la fonction d'anonymisation à toute la colonne
+    df_clean['numero_carte'] = df_clean['numero_carte'].apply(masquer_carte)
+
+    ## documenter dansles metadonnées
+    metadata["action_anonymisation"] = "Numéros de carte bancaire anonymisés"
+    
+    # ----------------------------------------------------------------
+    # ÉTAPE 3: CALCULS MÉTIER AUTOMATIQUES
+    # ----------------------------------------------------------------
+    
+    ## Objectif: Créer de nouvelles colonnes calculées pour l'analyse
+
+    # Récupérer la liste des calculs à effectuer depuis la config
+    calculs = config.get("tables_specialisées", {}).get("clients", {}).get("calculs_metier", {})
+
+    try:
+        #--------- calcul 1 : taux d'endettement -------------------------
+        if "taux d'endettement" in calculs:
+            df_clean['taux_endettement'] = (
+                df_clean['depenses_annuelles'].astype(float) /
+                df_clean['revenu_annuel'].astype(float
+            ). round(2) * 100  # en pourcentage arrondi à 2 décimales
+
+            ## initialiser la liste des calculs crées
+            metadata["calculs_crees"] = ["taux endetetement"]
+
+        #--------- calcul 2 : solde net -------------------------
+        if "solde_net" in calculs:
+            df_clean['solde_net'] = (
+                df_clean['revenu_annuel'].astype(float) -
+                df_clean['depenses_annuelles'].astype(float)
+            ) round(2) # arrondi à 2 décimales
+
+            ## documenter dans les métadonnées
+            metadata["calculs_crees"].append("solde_net")
+
+    except KeyError as e:
+        # En cas d'erreur (colonne manquante, type incorrect, etc.)
+        # Ne pas crasher, juste enregistrer l'erreur
+        metadata["erreurs_calculs"] = str(e)
+
+ ])
+    
+    # ----------------------------------------------------------------
+    # ÉTAPE 5: VALIDATION DES COLONNES OBLIGATOIRES
+    # ----------------------------------------------------------------
+    # Objectif: Vérifier que les colonnes critiques sont présentes
+    # Exemple: un client DOIT avoir nom, prénom, email
+    
+    # Récupérer la liste des colonnes obligatoires depuis la config
+    obligatoires = config.get("tables_specifiques", {}).get("clients", {}).get("colonnes_obligatoires", [])
+    
+    # Identifier quelles colonnes obligatoires sont manquantes
+    colonnes_manquantes = [col for col in obligatoires if col not in df_clean.columns]
+    
+    # Si des colonnes manquent, émettre un warning
+    if colonnes_manquantes:
+        # Ajouter une alerte dans les métadonnées
+        metadata["alertes"] = f"Colonnes obligatoires manquantes: {colonnes_manquantes}"
+        
+        # Émettre un warning Python (visible dans les logs)
+        warnings.warn(f"⚠️ Table clients - Colonnes manquantes: {colonnes_manquantes}")
+    
+    # ----------------------------------------------------------------
+    # RETOUR: DataFrame enrichi + métadonnées détaillées
+    # ----------------------------------------------------------------
+    return df_clean, metadata
