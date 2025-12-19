@@ -7,7 +7,7 @@ import os
 import logging
 from datetime import datetime
 
-def setuo_logger(name:str) -> logging.Logger:
+def setup_logger(name:str) -> logging.Logger:
     """"
     configure et retourne un logger avec un fichier et console en sortie
 

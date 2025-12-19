@@ -1,0 +1,101 @@
+# Configuration globale des transformations
+version: "1.0"
+
+# ===== RÈGLES PAR DÉFAUT (appliquées à toutes les tables) =====
+regles_default:
+  normaliser_colonnes: true          # Minuscules, sans espaces
+  supprimer_doublons: true           # Doublons exacts
+  convertir_dates_auto: true         # Colonnes contenant 'date'
+  valeur_manquante_defaut: "INCONNU" # Remplacement des NULL
+  encoding: "utf-8"
+  
+  # Colonnes à exclure du traitement automatique
+  colonnes_exclues: []
+  
+  # Types de données sensibles à logger
+  colonnes_sensibles_patterns:
+    - "carte"
+    - "credit"
+    - "password"
+    - "secret"
+
+# ===== RÈGLES SPÉCIFIQUES PAR TABLE =====
+tables_specifiques:
+  
+  # Configuration pour table 'clients' / 'finances'
+  clients:
+    alias: ["finances", "customers", "clients"]  # Noms alternatifs
+    
+    colonnes_obligatoires:
+      - "id"
+      - "email"
+    
+    anonymisation:
+      numero_carte:
+        methode: "masquer_carte_credit"
+        garder_derniers_chiffres: 4
+        caractere_masque: "*"
+    
+    calculs_metriques:
+      - nom: "taux_endettement"
+        formule: "depenses_annuelles / revenu_annuel"
+        format: "pourcentage"  # Multiplier par 100
+      
+      - nom: "solde_net"
+        formule: "revenu_annuel - depenses_annuelles"
+        format: "decimal"
+    
+    normalisation:
+      pays:
+        methode: "convertir_iso_alpha2"
+        colonne_source: "pays"
+        colonne_cible: "pays_code"
+        conserver_original: true
+    
+    validations:
+      email:
+        regex: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        action_si_invalide: "marquer_invalide"  # ou "supprimer"
+      
+      revenu_annuel:
+        min: 0
+        max: 10000000
+        action_si_invalide: "mettre_null"
+  
+  # Configuration pour table 'vehicules' / 'ventes'
+  vehicules:
+    alias: ["ventes", "cars", "vehicles"]
+    
+    colonnes_obligatoires:
+      - "vin"
+      - "make"
+    
+    # Pas d'anonymisation pour VIN (donnée publique)
+    # Transformation par défaut uniquement
+    
+    conversions_types:
+      saledate:
+        type: "datetime"
+        format: "%Y-%m-%d"
+      
+      odometer:
+        type: "int"
+        gestion_null: "mettre_zero"
+    
+    validations:
+      vin:
+        regex: "^[A-HJ-NPR-Z0-9]{17}$"
+        action_si_invalide: "marquer_invalide"
+
+# ===== MÉTADONNÉES À GÉNÉRER =====
+metadonnees:
+  inclure:
+    - "nombre_lignes_avant"
+    - "nombre_lignes_apres"
+    - "colonnes_ajoutees"
+    - "colonnes_supprimees"
+    - "taux_valeurs_manquantes"
+    - "doublons_supprimes"
+    - "timestamp_transformation"
+    - "duree_execution"
+    - "warnings_securite"
